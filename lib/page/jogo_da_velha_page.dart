@@ -11,8 +11,10 @@ class _JogoDaVelhaPageSate extends State<JogoDaVelhaPage> {
   Jogador _jogadorDaVez;
   Jogador _jogadorX = Jogador(player: 'X');
   Jogador _jogadorO = Jogador(player: 'O');
+  int totalDeJogadas = 0;
+  bool ganho = false;
 
-  final List<List<Jogador>> _tabuleiro = [
+  List<List<Jogador>> _tabuleiro = [
     [null, null, null],
     [null, null, null],
     [null, null, null],
@@ -24,23 +26,50 @@ class _JogoDaVelhaPageSate extends State<JogoDaVelhaPage> {
     super.initState();
   }
 
+  _restart() {
+    setState(() {
+      for (var row = 0; row < _tabuleiro.length; row++) {
+        _tabuleiro[row] = List(3);
+        for (var column = 0; column < _tabuleiro.length; column++) {
+          _tabuleiro[row][column] = null;
+        }
+      }
+    });
+    _jogadorDaVez = _jogadorX;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Jogo da velha, jogador da vez: ${_jogadorDaVez.player}'),
-        elevation: 0,
-        backgroundColor: Colors.blueAccent,
-      ),
-      body: Container(color: Colors.blueGrey, child: _createBoard()),
+      appBar: _buildAppBar(),
+      body: _buildBody(),
     );
   }
 
-  Widget _createBoard() {
+  _buildAppBar() {
+    return AppBar(
+      title: Text('Jogo da velha, jogador da vez: ${_jogadorDaVez.player}'),
+      centerTitle: true,
+    );
+  }
+
+  _buildBody() {
+    return Container(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _buildBoard(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBoard() {
     final List<int> listaFixa =
         Iterable<int>.generate(_tabuleiro.length).toList();
     return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: listaFixa.map((j) => _createLinha(_tabuleiro[j], j)).toList(),
     );
   }
@@ -49,7 +78,7 @@ class _JogoDaVelhaPageSate extends State<JogoDaVelhaPage> {
     final List<int> listaFixa = Iterable<int>.generate(linha.length).toList();
     return Container(
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.center,
         children:
             listaFixa.map((i) => _createPosition(linha[i], j, i)).toList(),
       ),
@@ -63,11 +92,18 @@ class _JogoDaVelhaPageSate extends State<JogoDaVelhaPage> {
           _jogada(j, i);
         },
         child: Container(
-          height: 100,
-          width: 100,
-          color: Colors.grey[300],
-          child: Center(
-            child: _criaImagemPosicao(jogador),
+          height: 150,
+          width: 120,
+          color: Colors.grey[350],
+          child: Container(
+            padding: EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+                border: Border.all(
+              width: 1.0,
+            )),
+            child: Center(
+              child: _criaImagemPosicao(jogador),
+            ),
           ),
         ),
       ),
@@ -91,8 +127,16 @@ class _JogoDaVelhaPageSate extends State<JogoDaVelhaPage> {
       _verificaGanhador();
       _trocaJogador();
     } else {
-      _mostrarMensagem(
-          'Está posição já está ocupada, tente outra, seu apedeuta!');
+      final snackBar = SnackBar(
+        content: Text('Está posição já está ocupada, tente outra'),
+        action: SnackBarAction(
+          label: 'OK',
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
 
@@ -100,25 +144,37 @@ class _JogoDaVelhaPageSate extends State<JogoDaVelhaPage> {
     setState(() {
       _jogadorDaVez = _jogadorDaVez.player == 'X' ? _jogadorO : _jogadorX;
     });
+    totalDeJogadas++;
   }
 
-  void _mostrarMensagem(String msg) {
-    final snackBar = SnackBar(
-      content: Text(msg),
-      action: SnackBarAction(
-        label: 'OK',
-        onPressed: () {
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        },
-      ),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  void _mensagem(String msg) {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: new Text(msg),
+            content: new Text("Click em restart para começar outro jogo!"),
+            actions: <Widget>[
+              new FlatButton(
+                child: new Text("Restart"),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _restart();
+                  ganho = false;
+                  totalDeJogadas = 0;
+                },
+              ),
+            ],
+          );
+        });
   }
 
   void _verificaGanhador() {
     _verificarHorizontal();
     _verificarVertical();
     _verificaDiagonal();
+    _verificaSeImpatou();
   }
 
   void _verificarHorizontal() {
@@ -126,7 +182,8 @@ class _JogoDaVelhaPageSate extends State<JogoDaVelhaPage> {
       if (_tabuleiro[i][0] != null &&
           _tabuleiro[i][0] == _tabuleiro[i][1] &&
           _tabuleiro[i][0] == _tabuleiro[i][2]) {
-        _mostrarMensagem('O jogador ${_tabuleiro[i][0].player} ganhou!');
+        _mensagem('O jogador ${_tabuleiro[i][0].player} ganhou!');
+        ganho = true;
       }
     }
   }
@@ -136,7 +193,8 @@ class _JogoDaVelhaPageSate extends State<JogoDaVelhaPage> {
       if (_tabuleiro[0][i] != null &&
           _tabuleiro[0][i] == _tabuleiro[1][i] &&
           _tabuleiro[0][i] == _tabuleiro[2][i]) {
-        _mostrarMensagem('O jogador ${_tabuleiro[0][i].player} ganhou!');
+        _mensagem('O jogador ${_tabuleiro[0][i].player} ganhou!');
+        ganho = true;
       }
     }
   }
@@ -145,11 +203,21 @@ class _JogoDaVelhaPageSate extends State<JogoDaVelhaPage> {
     if (_tabuleiro[0][0] != null &&
         _tabuleiro[0][0] == _tabuleiro[1][1] &&
         _tabuleiro[0][0] == _tabuleiro[2][2]) {
-      _mostrarMensagem('O jogador ${_tabuleiro[0][0].player} ganhou!');
+      _mensagem('O jogador ${_tabuleiro[0][0].player} ganhou!');
+      ganho = true;
     } else if (_tabuleiro[0][2] != null &&
         _tabuleiro[0][2] == _tabuleiro[1][1] &&
         _tabuleiro[0][2] == _tabuleiro[2][0]) {
-      _mostrarMensagem('O jogador ${_tabuleiro[0][2].player} ganhou!');
+      _mensagem('O jogador ${_tabuleiro[0][2].player} ganhou!');
+      ganho = true;
     }
+  }
+
+  void _verificaSeImpatou() {
+    if (totalDeJogadas == 8 && ganho == false) {
+      _mensagem('Ninguem ganhou!');
+      ganho = true;
+    }
+    print(totalDeJogadas);
   }
 }
