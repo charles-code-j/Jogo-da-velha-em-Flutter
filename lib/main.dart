@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trabalho_jogo_da_velha_flutter/page/jogo_da_velha_page.dart';
+import 'package:flutter/cupertino.dart';
 
 void main() {
   runApp(MyApp());

@@ -115,9 +115,9 @@ class _JogoDaVelhaPageSate extends State<JogoDaVelhaPage> {
       return null;
     }
     if (jogador.player == 'X') {
-      return Image.asset('assets/x.png');
+      return Image.asset('/x.png');
     } else {
-      return Image.asset('assets/o.png');
+      return Image.asset('/o.png');
     }
   }
 
